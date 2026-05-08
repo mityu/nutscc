@@ -49,20 +49,22 @@ void gc_init(void) {
 
 void *gc_malloc(size_t size) {
     void *ptr = NULL;
-    MemInfo *rinfo = (MemInfo *)malloc(sizeof(MemInfo));
-    if (rinfo == NULL) {
-        return NULL;
-    }
+    MemInfo *meminfo = NULL;
 
     if (should_trigger_gc()) {
         gc_collect();
     }
 
-    rinfo->size = size;
-    rinfo->alive = false;
+    meminfo = (MemInfo *)malloc(sizeof(MemInfo));
+    if (meminfo == NULL) {
+        return NULL;
+    }
+
+    meminfo->size = size;
+    meminfo->alive = false;
     ptr = malloc(size);
     if (ptr == NULL) {
-        free(rinfo);
+        free(meminfo);
         return NULL;
     }
 
@@ -73,7 +75,7 @@ void *gc_malloc(size_t size) {
     if ((uintptr_t)ptr < gcinfo.area.bottom) {
         gcinfo.area.bottom = (uintptr_t)ptr;
     }
-    hashmap_insert(gcinfo.mems, ptr, (void *)rinfo);
+    hashmap_insert(gcinfo.mems, ptr, (void *)meminfo);
 
     memset(ptr, 0, size);
     return ptr;
@@ -89,13 +91,21 @@ void *gc_malloc_or_die(size_t size) {
 }
 
 void gc_collect(void) {
-    char stacktop;
-    gc_collect_mark((uintptr_t)__libc_stack_end, (uintptr_t)&stacktop);
+    // This is a dummy variable to get the address of the top of the stack.
+    // Starting from this address, we're going to scan the stack memory every
+    // sizeof(T*) bytes (typically 8 bytes) to find alive pointer to heap.
+    // Since this address will be the starting point of scan, this dummy
+    // variable should be a pointer (in order to make sure that it is aligned
+    // as same as any pointer value) so that we can prevent scanning memory
+    // using a slightly off-aligned offset.
+    void *stacktop;
+
+    gc_collect_mark((uintptr_t)&stacktop, (uintptr_t)__libc_stack_end);
     gc_collect_sweep();
     gcinfo.lastGcClock = clock();
 }
 
-void gc_collect_mark(uintptr_t stackbottom, uintptr_t stacktop) {
+void gc_collect_mark(uintptr_t stacktop, uintptr_t stackbottom) {
     MemInfo *meminfo = NULL;
 
     if (stackbottom < stacktop) {
@@ -104,7 +114,7 @@ void gc_collect_mark(uintptr_t stackbottom, uintptr_t stacktop) {
         stacktop = tmp;
     }
 
-    for (uintptr_t work = stackbottom; work <= stacktop; work += sizeof(void *)) {
+    for (uintptr_t work = stacktop; work <= stackbottom; work += sizeof(void *)) {
         uintptr_t p = (uintptr_t)*(void **)work;
         if ((p & 0x3) != 0) {
             continue;
@@ -147,7 +157,7 @@ void gc_collect_sweep(void) {
             hashmap_iter_next(iter);
         } else {
             gcinfo.totalSize -= meminfo->size;
-            hashmap_remove(gcinfo.mems, (void *)address);
+            hashmap_iter_remove(iter);
             free((void *)address);
         }
     }
