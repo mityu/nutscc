@@ -30,3 +30,4 @@ endif()
 
 add_compile_options(-Wall)
 add_subdirectory(gc)
+add_subdirectory(gen_embeddable)
