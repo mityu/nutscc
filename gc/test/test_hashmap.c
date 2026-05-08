@@ -148,7 +148,7 @@ static MunitResult test_remove_by_iterator(
         const MunitParameter *params, void *user_data) {
     HashMap *map = (HashMap *)user_data;
     HashMapIter *iter;
-    void *key;
+    void *key1, *key2;
 
     hashmap_insert(map, (void *)1, safe_strdup("abc"));
     hashmap_insert(map, (void *)2, safe_strdup("ghi"));
@@ -156,16 +156,42 @@ static MunitResult test_remove_by_iterator(
 
     iter = hashmap_iter(map);
     munit_assert_not_null(iter);
+    munit_assert_false(hashmap_iter_is_end(iter));
 
     hashmap_iter_next(iter);
     munit_assert_false(hashmap_iter_is_end(iter));
 
-    key = hashmap_iter_get_key(iter);
-    munit_assert_not_null(key);
+    key1 = hashmap_iter_get_key(iter);
+    munit_assert_not_null(key1);
 
-    munit_assert_not_null(hashmap_find(map, key));
+    munit_assert_not_null(hashmap_find(map, key1));
     hashmap_iter_remove(iter);
-    munit_assert_null(hashmap_find(map, key));
+    munit_assert_null(hashmap_find(map, key1));
+
+    // hashmap_iter_remove() should make `iter` to point to next iterm.
+    munit_assert_false(hashmap_iter_is_end(iter));
+    key2 = hashmap_iter_get_key(iter);
+    munit_assert_not_null(key2);
+    munit_assert_uint64((uint64_t)key1, !=, (uint64_t)key2);
+
+    hashmap_iter_destroy(&iter);
+
+    return MUNIT_OK;
+}
+
+static MunitResult test_remove_last_item_by_iterator(
+        const MunitParameter *params, void *user_data) {
+    HashMap *map = (HashMap *)user_data;
+    HashMapIter *iter;
+
+    hashmap_insert(map, (void *)1, safe_strdup("xyz"));
+
+    iter = hashmap_iter(map);
+    munit_assert_not_null(iter);
+
+    munit_assert_false(hashmap_iter_is_end(iter));
+    hashmap_iter_remove(iter);
+    munit_assert_true(hashmap_iter_is_end(iter));
 
     hashmap_iter_destroy(&iter);
 
@@ -256,6 +282,7 @@ static MunitTest tests[] = {
         TEST_ADD("/find item", test_insert_remove_find),
         TEST_ADD("/iterator lists all items", test_iterator),
         TEST_ADD("/remove item using iterator", test_remove_by_iterator),
+        TEST_ADD("/remove last item using iterator", test_remove_last_item_by_iterator),
         TEST_ADD("/iterator removal", test_iterator_with_removal),
         {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
 };
