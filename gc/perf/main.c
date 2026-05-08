@@ -1,4 +1,5 @@
-#include "../gc.h"
+#include "gc/gc.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -13,9 +14,15 @@
 #endif
 
 int main() {
+    char buf[100];
     GC_INIT();
     for (;;) {
         void *p = GC_MALLOC(10000000);
+
+        // Dummy operation with effect.  This is for preventing compiler from
+        // applying optimization and eliminating malloc() calls.
+        sprintf(buf, "%p", p);
+
         GC_COLLECT();
         usleep(1000);
     }

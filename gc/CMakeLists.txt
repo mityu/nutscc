@@ -9,4 +9,5 @@ target_sources(gc
     gc.c hashmap.c hashmap.h
 )
 
+add_subdirectory(perf)
 add_subdirectory(test)
