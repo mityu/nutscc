@@ -169,3 +169,5 @@ bool should_trigger_gc(void) {
     double elapsed = (double)(clock() - gcinfo.lastGcClock) / CLOCKS_PER_SEC;
     return (gcinfo.totalSize > GC_TRIGGER_BYTE_SIZE) || (elapsed > GC_TRIGGER_INTERVAL);
 }
+
+size_t gc_get_total_size(void) { return gcinfo.totalSize; }

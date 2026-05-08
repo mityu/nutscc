@@ -45,6 +45,35 @@ static MunitResult test_gc_keeps_used_by_global_var(
     return MUNIT_OK;
 }
 
+static MunitResult test_check_mem_size_changes(
+        const MunitParameter *params, void *user_data) {
+    const size_t cap_size = 10;
+    void *slots[6] = {};
+    size_t total[3] = {};
+    size_t slot_size = sizeof(slots) / sizeof(slots[0]);
+
+    gc_collect();
+
+    total[0] = gc_get_total_size();
+
+    for (int i = 0; i < slot_size; ++i) {
+        slots[i] = safe_malloc(cap_size);
+    }
+
+    total[1] = gc_get_total_size();
+    munit_assert_size(total[1] - total[0], >=, cap_size * slot_size);
+
+    for (int i = 0; i < slot_size / 2; ++i) {
+        slots[i] = NULL;
+    }
+
+    gc_collect();
+    total[2] = gc_get_total_size();
+    munit_assert_size(total[1] - total[2], >=, cap_size * (slot_size / 2));
+
+    return MUNIT_OK;
+}
+
 #define TEST_ADD(name, testfunc)                                                         \
     {name, testfunc, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
 static MunitTest tests[] = {
@@ -52,6 +81,7 @@ static MunitTest tests[] = {
                 test_gc_keeps_used_by_local_var),
         TEST_ADD("/gc keeps memory being used by global vars",
                 test_gc_keeps_used_by_global_var),
+        TEST_ADD("/check allocated memory size", test_check_mem_size_changes),
         {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
 };
 #undef TEST_ADD

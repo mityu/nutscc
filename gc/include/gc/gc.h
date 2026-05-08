@@ -16,4 +16,7 @@ void *gc_malloc_or_die(size_t size);
 // Run garbage collector.
 void gc_collect(void);
 
+// Get size of currently allocated memory.
+size_t gc_get_total_size(void);
+
 #endif
