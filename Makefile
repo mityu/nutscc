@@ -36,7 +36,7 @@ define GEN_BUILDMENUS
 .PHONY: cmake-prepare-$1 $1 test-$1 $1-% cmake-refresh-$1 build-dir-$1
 cmake-prepare-$1:
 	$(call MKDIR,$(BUILDDIR)/$1)
-	CC=$2 cmake -B $(BUILDDIR)/$1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	CC=$2 cmake -B $(BUILDDIR)/$1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
 $1: cmake-prepare-$1
 	cmake --build $(BUILDDIR)/$1
 test-$1: $1
@@ -45,7 +45,7 @@ $1-%: cmake-prepare-$1
 	cmake --build $(BUILDDIR)/$1 --target $${@:$1-%=%}
 cmake-refresh-$1:
 	$(call MKDIR,$(BUILDDIR)/$1)
-	CC=$2 cmake -B $(BUILDDIR)/$1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --fresh
+	CC=$2 cmake -B $(BUILDDIR)/$1 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug --fresh
 build-dir-$1:
 	@echo $(BUILDDIR)/$1
 endef
