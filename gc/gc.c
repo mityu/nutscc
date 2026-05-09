@@ -31,6 +31,7 @@ struct MemInfo {
     bool alive;
 };
 
+static void *get_stack_base_address(void); // Get the address of the bottom of the stack.
 static void gc_collect_mark(uintptr_t stackbottom, uintptr_t stacktop);
 static void gc_collect_sweep(void);
 static bool should_trigger_gc(void);
@@ -100,7 +101,7 @@ void gc_collect(void) {
     // using a slightly off-aligned offset.
     void *stacktop;
 
-    gc_collect_mark((uintptr_t)&stacktop, (uintptr_t)__libc_stack_end);
+    gc_collect_mark((uintptr_t)&stacktop, (uintptr_t)get_stack_base_address());
     gc_collect_sweep();
     gcinfo.lastGcClock = clock();
 }
@@ -171,3 +172,13 @@ bool should_trigger_gc(void) {
 }
 
 size_t gc_get_total_size(void) { return gcinfo.totalSize; }
+
+#if defined(__APPLE__)
+#include <pthread.h>
+void *get_stack_base_address(void) {
+    return pthread_get_stackaddr_np(pthread_self()) - 1;
+}
+#elif defined(__linux__)
+extern void *__libc_stack_end;
+void *get_stack_base_address(void) { return __libc_stack_end; }
+#endif
