@@ -150,7 +150,7 @@ void gc_collect_sweep(void) {
                 gcinfo.area.bottom = address;
             }
             if ((address + meminfo->size) > gcinfo.area.top) {
-                gcinfo.area.top = address = meminfo->size;
+                gcinfo.area.top = address + meminfo->size;
             }
             hashmap_iter_next(iter);
         } else {
