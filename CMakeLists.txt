@@ -16,15 +16,10 @@ if (CMAKE_EXPORT_COMPILE_COMMANDS AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMA
     )
 endif()
 
+add_library(test_framework INTERFACE)
 if (NOT NUTSCC_DISABLE_TEST)
-    set(MUNIT_DIR submodule/munit)
-    add_library(munit STATIC)
-    target_sources(munit
-        PUBLIC FILE_SET HEADERS
-        BASE_DIRS ${MUNIT_DIR}
-        FILES ${MUNIT_DIR}/munit.h
-    )
-    target_sources(munit PRIVATE ${MUNIT_DIR}/munit.c)
+    add_subdirectory(nutest)
+    target_link_libraries(test_framework INTERFACE nutest)
     enable_testing()
 endif()
 

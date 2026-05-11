@@ -1,3 +1,3 @@
-[submodule "submodule/munit"]
-	path = submodule/munit
-	url = https://github.com/nemequ/munit
+[submodule "submodule/Unity"]
+	path = submodule/Unity
+	url = https://github.com/ThrowTheSwitch/Unity
