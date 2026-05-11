@@ -289,12 +289,15 @@ static NutestTest iter_tests[] = {
 static const NutestSuite suite = {
         "hashmap",
         hashmap_tests,
-        &(NutestSuite){
-                "/iterator",
-                iter_tests,
-                NULL,
-                setup_iterator,
-                teardown_iterator,
+        (NutestSuite[]){
+                {
+                        "/iterator",
+                        iter_tests,
+                        NULL,
+                        setup_iterator,
+                        teardown_iterator,
+                },
+                {NULL},
         },
         setup_hashmap,
         teardown_hashmap,
