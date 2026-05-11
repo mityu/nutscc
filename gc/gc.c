@@ -8,9 +8,6 @@
 #define GC_TRIGGER_BYTE_SIZE (1e10)
 #define GC_TRIGGER_INTERVAL (120.0)
 
-// TODO: More portable way.
-extern void *__libc_stack_end;
-
 typedef struct MemArea {
     uintptr_t top;
     uintptr_t bottom;
