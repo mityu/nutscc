@@ -10,4 +10,6 @@ target_sources(gc
 )
 
 add_subdirectory(perf)
-add_subdirectory(test)
+if (NOT NUTSCC_DISABLE_TEST_GC)
+    add_subdirectory(test)
+endif ()
