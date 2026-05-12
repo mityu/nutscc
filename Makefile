@@ -54,6 +54,9 @@ $(eval $(call GEN_BUILDMENUS,byauto,))
 $(eval $(call GEN_BUILDMENUS,bygcc,gcc))
 $(eval $(call GEN_BUILDMENUS,byclang,clang))
 
+list: cmake-prepare-byauto
+	cmake -LH $(BUILDDIR)/byauto
+
 # .PHONY: clean
 # clean:
 # 	$(RM) -r $(BUILDDIR)
