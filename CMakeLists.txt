@@ -18,37 +18,37 @@ if (CMAKE_EXPORT_COMPILE_COMMANDS AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMA
 endif()
 
 add_library(test_framework INTERFACE)
-block()
-    set(TEST_DISABLER_LIST
-        NUTSCC_DISABLE_TEST_GC
-    )
 
-    if (NUTSCC_DISABLE_TEST_ALL)
-        # Make flag on to disable each test suite.
-        foreach (VARNAME ${TEST_DISABLER_LIST})
-            set(${VARNAME} ON)
-        endforeach()
-    endif()
+set(TEST_DISABLER_LIST
+    NUTSCC_DISABLE_TEST_GC
+    NUTSCC_DISABLE_TEST_CONTAINERS
+)
+set(ENABLE_TESTS FALSE)
 
-    set(ENABLE_TESTS FALSE)
-    foreach(VARNAME ${TEST_DISABLER_LIST})
-        if(NOT ${${VARNAME}})
-            set(ENABLE_TESTS TRUE)
-        else()
-            string(REGEX REPLACE "^NUTSCC_DISABLE_TEST_" "" MODNAME ${VARNAME})
-            string(TOLOWER ${MODNAME} MODNAME)
-            message(WARNING "Tests for ${MODNAME} module are disabled.")
-        endif()
+if (NUTSCC_DISABLE_TEST_ALL)
+    # Make flag on to disable each test suite.
+    foreach (VARNAME ${TEST_DISABLER_LIST})
+        set(${VARNAME} ON)
     endforeach()
+endif()
 
-    if (ENABLE_TESTS)
-        add_subdirectory(nutest)
-        target_link_libraries(test_framework INTERFACE nutest)
-        enable_testing()
+foreach(VARNAME ${TEST_DISABLER_LIST})
+    if(NOT ${${VARNAME}})
+        set(ENABLE_TESTS TRUE)
     else()
-        message(WARNING "All tests are disabled.")
+        string(REGEX REPLACE "^NUTSCC_DISABLE_TEST_" "" MODNAME ${VARNAME})
+        string(TOLOWER ${MODNAME} MODNAME)
+        message(WARNING "Tests for ${MODNAME} module are disabled.")
     endif()
-endblock()
+endforeach()
+
+if (ENABLE_TESTS)
+    add_subdirectory(nutest)
+    target_link_libraries(test_framework INTERFACE nutest)
+    enable_testing()
+else()
+    message(WARNING "All tests are disabled.")
+endif()
 
 add_compile_options(-Wall)
 add_subdirectory(gc)
