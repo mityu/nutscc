@@ -1,5 +1,6 @@
 #include "gc/gc.h"
 #include "./hashmap.h"
+#include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -7,11 +8,17 @@
 #include <time.h>
 #define GC_TRIGGER_BYTE_SIZE (1e10)
 #define GC_TRIGGER_INTERVAL (120.0)
+#define GC_ROOTS_SLOTS (5)
 
 typedef struct MemArea {
     uintptr_t top;
     uintptr_t bottom;
 } MemArea;
+
+typedef struct GcRoots {
+    MemArea roots[GC_ROOTS_SLOTS];
+    size_t size;
+} GcRoots;
 
 typedef struct GcInfo GcInfo;
 struct GcInfo {
@@ -19,6 +26,7 @@ struct GcInfo {
     clock_t lastGcClock; // The time that GC is done last time.
     HashMap *mems;       // List of allocated memory areas.
     MemArea area;        // Memory area that can allocated memory appears.
+    GcRoots roots;       // Memory areas that are used as roots on GC.
 };
 
 typedef struct MemInfo MemInfo;
@@ -29,6 +37,8 @@ struct MemInfo {
 };
 
 static void *get_stack_base_address(void); // Get the address of the bottom of the stack.
+static void add_static_gc_roots(void);     // Register GC roots memory areas.
+static void gc_add_gc_root(const MemArea *root);
 static void gc_collect_mark(uintptr_t stackbottom, uintptr_t stacktop);
 static void gc_collect_sweep(void);
 static bool should_trigger_gc(void);
@@ -42,6 +52,7 @@ void gc_init(void) {
         gcinfo.area.bottom = UINTPTR_MAX;
         gcinfo.mems = hashmap_new();
         gcinfo.lastGcClock = clock();
+        add_static_gc_roots();
     }
 }
 
@@ -99,22 +110,28 @@ void gc_collect(void) {
     void *stacktop = NULL;
 
     gc_collect_mark((uintptr_t)&stacktop, (uintptr_t)get_stack_base_address());
+    for (int i = 0; i < gcinfo.roots.size; ++i) {
+        gc_collect_mark(gcinfo.roots.roots[i].top, gcinfo.roots.roots[i].bottom);
+    }
     gc_collect_sweep();
     gcinfo.lastGcClock = clock();
 }
 
 void gc_collect_mark(uintptr_t stacktop, uintptr_t stackbottom) {
     MemInfo *meminfo = NULL;
+    const uintptr_t alignMask = alignof(void *) - 1;
 
     if (stackbottom < stacktop) {
-        uintptr_t tmp = stackbottom;
-        stackbottom = stacktop;
-        stacktop = tmp;
+        // Maybe running on a system where stack grows from low-address to high-address,
+        // or a bug in this gc.c.
+        fprintf(stderr, "%s:%d unreachable", __FILE__, __LINE__);
+        exit(1);
     }
 
+    stacktop = stacktop - (stacktop & alignMask) + alignof(void *);
     for (uintptr_t work = stacktop; work <= stackbottom; work += sizeof(void *)) {
         uintptr_t p = (uintptr_t)*(void **)work;
-        if ((p & 0x3) != 0) {
+        if ((p & alignMask) != 0) {
             continue;
         } else if (p < gcinfo.area.bottom || p > gcinfo.area.top) {
             continue;
@@ -170,12 +187,64 @@ bool should_trigger_gc(void) {
 
 size_t gc_get_total_size(void) { return gcinfo.totalSize; }
 
+void gc_add_gc_root(const MemArea *root) {
+    if (gcinfo.roots.size >= GC_ROOTS_SLOTS) {
+        fprintf(stderr, "%s:%d Not enough room for GC roots memory area slots.", __FILE__,
+                __LINE__);
+        exit(1);
+    }
+    gcinfo.roots.roots[gcinfo.roots.size++] = *root;
+}
+
 #if defined(__APPLE__)
+#include <mach-o/getsect.h>
 #include <pthread.h>
+
+extern struct mach_header_64 _mh_execute_header;
+
 void *get_stack_base_address(void) {
     return pthread_get_stackaddr_np(pthread_self()) - 1;
 }
+
+void add_static_gc_roots(void) {
+    struct {
+        char segname[16];
+        char sectname[16];
+    } sections[] = {
+            {"__DATA", "__data"},
+            {"__DATA", "__bss"},
+    };
+
+    for (int i = 0; i < sizeof(sections) / sizeof(sections[0]); ++i) {
+        MemArea root = {};
+        uint8_t *addr = NULL;
+        size_t size = 0;
+
+        addr = getsectiondata(
+                &_mh_execute_header, sections[i].segname, sections[i].sectname, &size);
+        if (addr != NULL) {
+            root.top = (uintptr_t)addr;
+            root.bottom = root.top + size;
+            gc_add_gc_root(&root);
+        }
+    }
+}
 #elif defined(__linux__)
 extern void *__libc_stack_end;
+extern char _etext, _edata, _end;
+
 void *get_stack_base_address(void) { return __libc_stack_end; }
+
+void add_static_gc_roots(void) {
+    MemArea root = {};
+
+    if ((uintptr_t)&_etext < (uintptr_t)&_edata) {
+        root.top = (uintptr_t)&_etext;
+    } else {
+        root.top = (uintptr_t)&_edata;
+    }
+    root.bottom = (uintptr_t)((uintptr_t *)&_end - 1);
+    fprintf(stderr, "(%p, %p)\n", (void *)root.top, (void *)root.bottom);
+    gc_add_gc_root(&root);
+}
 #endif
