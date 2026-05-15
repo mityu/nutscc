@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test with ${{ matrix.compiler }} (${{ matrix.homebrew && 'Homebrew' || 'System' }}) on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+
+        compiler:
+          - gcc
+          - clang
+          - tcc
+
+        homebrew:
+          - true
+          - false
+
+        include:
+          - os: macos-latest
+            compiler: clang
+
+        # TCC doesn't support macOS now.
+        exclude:
+          - os: macos-latest
+            compiler: tcc
+          - os: macos-latest
+            compiler: gcc
+            homebrew: false
+          - os: ubuntu-latest
+            homebrew: true
+
+          # Temporally disable test with gcc on ubuntu since test fails with gcc13.
+          - os: ubuntu-latest
+            compiler: gcc
+            homebrew: false
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install GCC on macOS
+        if: ${{ contains(matrix.os, 'macos') && matrix.compiler == 'gcc' }}
+        run: |
+          brew install gcc
+          brew link --overwrite --force gcc
+      - name: Install Homebrew Clang on macOS
+        if: ${{ contains(matrix.os, 'macos') && matrix.compiler == 'clang' && matrix.homebrew }}
+        run: |
+          brew install llvm lld
+          brew link --overwrite --force llvm lld
+      - name: Setup homebrew on Ubuntu
+        uses: Homebrew/actions/setup-homebrew@main
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+      - name: Install latest CMake on Ubuntu
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        run: brew install cmake
+      - name: Install compiler on Ubuntu
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        run: sudo apt install ${{ matrix.compiler }}
+      - name: Show enrivonment
+        run: |
+          uname -a
+          ${{ matrix.compiler }} --version
+      - run: make cmake-prepare-by${{ matrix.compiler }}
+      - run: make by${{ matrix.compiler }}
+      - run: make test-by${{ matrix.compiler }}
+
+  build-without-test:
+    name: Build without test on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    env:
+      BUILDDIR: ./build/byauto
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - name: Setup homebrew on Ubuntu
+        uses: Homebrew/actions/setup-homebrew@main
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+      - name: Install latest CMake on Ubuntu
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        run: brew install cmake
+      - name: CMake initialization
+        run: |
+          mkdir -p "$BUILDDIR"
+          cmake -B "$BUILDDIR" -DNUTSCC_DISABLE_TEST_ALL=ON
+      - run: cmake --build "$BUILDDIR"
+
+  code-format-check:
+    name: Code format check by clang-format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+      - name: Prepare newer clang-format
+        run: |
+          brew install clang-format
+          brew link clang-format --force
+      - name: Show clang-format version
+        run: clang-format --version
+      - name: Check code format
+        run: |
+          find ./ -name '*.[ch]' -exec clang-format --dry-run -Werror {} +
