@@ -4,6 +4,7 @@ project(nutscc C)
 
 option(NUTSCC_DISABLE_TEST_ALL "Disable all of the test targets.")
 option(NUTSCC_DISABLE_TEST_GC "Diable tests of GC module.")
+option(NUTSCC_DISABLE_TEST_CONTAINERS "Diable tests of containers module.")
 
 # Generate compile_commands.json at the root of the project when compiler is either of GCC or Clang.
 if (CMAKE_EXPORT_COMPILE_COMMANDS AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang"))
@@ -52,4 +53,5 @@ endif()
 
 add_compile_options(-Wall)
 add_subdirectory(gc)
+add_subdirectory(containers)
 add_subdirectory(gen_embeddable)
