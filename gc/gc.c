@@ -96,7 +96,7 @@ void gc_collect(void) {
     // variable should be a pointer (in order to make sure that it is aligned
     // as same as any pointer value) so that we can prevent scanning memory
     // using a slightly off-aligned offset.
-    void *stacktop;
+    void *stacktop = NULL;
 
     gc_collect_mark((uintptr_t)&stacktop, (uintptr_t)get_stack_base_address());
     gc_collect_sweep();
