@@ -6,3 +6,4 @@ function(add_test_target TESTNAME SRCS)
 endfunction()
 
 add_test_target(string test_string.c)
+add_test_target(vector test_vector.c)
