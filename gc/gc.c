@@ -129,7 +129,7 @@ void gc_collect_mark(uintptr_t stacktop, uintptr_t stackbottom) {
     }
 
     stacktop = stacktop - (stacktop & alignMask) + alignof(void *);
-    for (uintptr_t work = stacktop; work <= stackbottom; work += sizeof(void *)) {
+    for (uintptr_t work = stacktop; work < stackbottom; work += sizeof(void *)) {
         uintptr_t p = (uintptr_t)*(void **)work;
         if ((p & alignMask) != 0) {
             continue;
@@ -202,9 +202,7 @@ void gc_add_gc_root(const MemArea *root) {
 
 extern struct mach_header_64 _mh_execute_header;
 
-void *get_stack_base_address(void) {
-    return pthread_get_stackaddr_np(pthread_self()) - 1;
-}
+void *get_stack_base_address(void) { return pthread_get_stackaddr_np(pthread_self()); }
 
 void add_static_gc_roots(void) {
     struct {
@@ -231,20 +229,20 @@ void add_static_gc_roots(void) {
 }
 #elif defined(__linux__)
 extern void *__libc_stack_end;
-extern char _etext, _edata, _end;
+extern char __data_start, _edata;
+extern char __bss_start, _end;
 
-void *get_stack_base_address(void) { return __libc_stack_end; }
+void *get_stack_base_address(void) { return __libc_stack_end + 1; }
 
 void add_static_gc_roots(void) {
     MemArea root = {};
 
-    if ((uintptr_t)&_etext < (uintptr_t)&_edata) {
-        root.top = (uintptr_t)&_etext;
-    } else {
-        root.top = (uintptr_t)&_edata;
-    }
-    root.bottom = (uintptr_t)((uintptr_t *)&_end - 1);
-    fprintf(stderr, "(%p, %p)\n", (void *)root.top, (void *)root.bottom);
+    root.top = (uintptr_t)&__data_start;
+    root.bottom = (uintptr_t)&_edata;
+    gc_add_gc_root(&root);
+
+    root.top = (uintptr_t)&__bss_start;
+    root.bottom = (uintptr_t)&_end;
     gc_add_gc_root(&root);
 }
 #endif
