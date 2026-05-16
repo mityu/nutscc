@@ -5,6 +5,7 @@ project(nutscc C)
 option(NUTSCC_DISABLE_TEST_ALL "Disable all of the test targets.")
 option(NUTSCC_DISABLE_TEST_GC "Diable tests of GC module.")
 option(NUTSCC_DISABLE_TEST_CONTAINERS "Diable tests of containers module.")
+option(NUTSCC_GC_DONT_USE_DATA_SEGMENT_SYMBOL "Disable approach of using system-dependent symbol to get data segment in GC module.")
 
 # Generate compile_commands.json at the root of the project when compiler is either of GCC or Clang.
 if (CMAKE_EXPORT_COMPILE_COMMANDS AND (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang"))

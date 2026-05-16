@@ -229,11 +229,12 @@ void add_static_gc_roots(void) {
 }
 #elif defined(__linux__)
 extern void *__libc_stack_end;
-extern char __data_start, _edata;
-extern char __bss_start, _end;
 
 void *get_stack_base_address(void) { return __libc_stack_end + 1; }
 
+#ifdef NUTSCC_GC_USE_DATA_SEGMENT_SYMBOL
+extern char __data_start, _edata;
+extern char __bss_start, _end;
 void add_static_gc_roots(void) {
     MemArea root = {};
 
@@ -245,4 +246,88 @@ void add_static_gc_roots(void) {
     root.bottom = (uintptr_t)&_end;
     gc_add_gc_root(&root);
 }
+#else
+#include <stdio.h>
+
+// This variable is for finding .data segment.
+static char placeholder_init[1] = {};
+
+// This variable is for finding .bss segment.  Do NOT give an initializer value to this
+// variable.
+static char placeholder_noinit[1];
+
+int compare_mem_area(const void *a1, const void *a2) {
+    const MemArea *v1 = (const MemArea *)a1;
+    const MemArea *v2 = (const MemArea *)a2;
+    if (v1->top == v1->bottom) {
+        return -1;
+    } else if (v2->top == v2->bottom) {
+        return 1;
+    }
+    return v1->top - v2->top;
+}
+
+void add_static_gc_roots(void) {
+#define TARGET_SEGMENT_COUNT (2)
+    const uintptr_t seg_elems[TARGET_SEGMENT_COUNT] = {
+            (uintptr_t)placeholder_init,
+            (uintptr_t)placeholder_noinit,
+    };
+    MemArea areas[TARGET_SEGMENT_COUNT] = {};
+    const size_t target_segment_count = sizeof(seg_elems) / sizeof(seg_elems[0]);
+#undef TARGET_SEGMENT_COUNT
+    FILE *fp = NULL;
+    char line[256] = {};
+
+    fp = fopen("/proc/self/maps", "r");
+    dieWhenNULL(fp);
+
+    while (fgets(line, sizeof(line), fp)) {
+        uintptr_t top = 0, bottom = 0;
+        char perm[5] = {};
+        int parsed = 0;
+
+        parsed = sscanf(line, "%lx-%lx %4s", &top, &bottom, perm);
+        if (parsed < 3) {
+            continue;
+        }
+
+        for (int i = 0; i < target_segment_count; ++i) {
+            const uintptr_t p = seg_elems[i];
+            if (top <= p && p <= bottom && perm[0] == 'r' && perm[1] == 'w') {
+                areas[i].top = top;
+                areas[i].bottom = bottom;
+            }
+        }
+    }
+
+    fclose(fp);
+
+#define NO_AREA(area) (area.top == area.bottom)
+    // Merge segment area if they overlaps.
+    qsort(areas, target_segment_count, sizeof(areas[0]), compare_mem_area);
+    for (int i = 0; i < target_segment_count; ++i) {
+        if (NO_AREA(areas[i])) {
+            continue;
+        }
+        for (int j = i + 1; j < target_segment_count; ++j) {
+            MemArea zero = {};
+            if (NO_AREA(areas[j])) {
+                continue;
+            }
+            if (areas[i].bottom < areas[j].top) {
+                break;
+            }
+            areas[i].bottom = areas[j].bottom;
+            areas[j] = zero;
+        }
+    }
+    for (int i = 0; i < target_segment_count; ++i) {
+        if (!NO_AREA(areas[i])) {
+            gc_add_gc_root(&areas[i]);
+        }
+    }
+#undef NO_AREA
+}
+#endif
 #endif
