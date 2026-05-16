@@ -79,14 +79,18 @@ void nutest_suite_vec_push(NutestSuiteVec *vec, const NutestSuite *suite) {
         vec->suites = (const NutestSuite **)calloc_or_die(
                 vec->cap, sizeof(const NutestSuite *));
         if (save != NULL) {
-            memcpy(vec->suites, save, vec->size);
+            memcpy(vec->suites, save, sizeof(const NutestSuite *) * vec->size);
             free(save);
         }
     }
     vec->suites[vec->size++] = suite;
 }
 
-void nutest_suite_vec_pop(NutestSuiteVec *vec) { vec->size--; }
+void nutest_suite_vec_pop(NutestSuiteVec *vec) {
+    if (vec->size > 0) {
+        vec->suites[--vec->size] = NULL;
+    }
+}
 
 void run_test_case(const NutestTest *test_case) {
     testState.currentTest = test_case;
