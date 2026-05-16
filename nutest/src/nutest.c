@@ -78,8 +78,10 @@ void nutest_suite_vec_push(NutestSuiteVec *vec, const NutestSuite *suite) {
         vec->cap <<= 1;
         vec->suites = (const NutestSuite **)calloc_or_die(
                 vec->cap, sizeof(const NutestSuite *));
-        memcpy(vec->suites, save, vec->size);
-        free(save);
+        if (save != NULL) {
+            memcpy(vec->suites, save, vec->size);
+            free(save);
+        }
     }
     vec->suites[vec->size++] = suite;
 }
