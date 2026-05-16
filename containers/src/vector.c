@@ -20,7 +20,7 @@ Vector *vec_new(void) {
     }
     v->cap = INITIAL_VECTOR_CAP - VECTOR_CAP_MERGIN;
     v->size = 0;
-    v->entries = gc_malloc(v->cap);
+    v->entries = gc_malloc(sizeof(void *) * v->cap);
     if (v->entries == NULL) {
         return NULL;
     }
@@ -38,8 +38,8 @@ void vec_push(Vector *v, void *newElem) {
     if (v->size == v->cap) {
         void **newArea = NULL;
         v->cap = ((v->cap + VECTOR_CAP_MERGIN) << 1) - VECTOR_CAP_MERGIN;
-        newArea = (void **)gc_malloc_or_die(v->cap);
-        memcpy(newArea, v->entries, v->size);
+        newArea = (void **)gc_malloc_or_die(sizeof(void *) * v->cap);
+        memcpy(newArea, v->entries, sizeof(void *) * v->size);
         v->entries = newArea;
     }
     v->entries[v->size++] = newElem;
