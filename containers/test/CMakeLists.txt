@@ -1,7 +1,7 @@
 function(add_test_target TESTNAME SRCS)
     set(TARGET "containers.test.test_${TESTNAME}")
     add_executable(${TARGET} ${SRCS})
-    target_link_libraries(${TARGET} containers nutest)
+    target_link_libraries(${TARGET} containers test_framework)
     add_test(NAME "containers/test/${TESTNAME}" COMMAND ${TARGET})
 endfunction()
 

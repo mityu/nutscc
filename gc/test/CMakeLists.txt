@@ -5,7 +5,7 @@ function(add_test_target SRC)
     endif()
     set(TARGET "gc.test.test_${SUITE_NAME}")
     add_executable(${TARGET} ${SRC})
-    target_link_libraries(${TARGET} gc nutest)
+    target_link_libraries(${TARGET} gc test_framework)
     add_test(NAME "gc/test/${SUITE_NAME}" COMMAND ${TARGET})
 endfunction ()
 
