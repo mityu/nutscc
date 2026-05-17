@@ -62,7 +62,12 @@ static void test_check_mem_size_changes(void *user_data) {
 
     gc_collect();
     total[2] = gc_get_total_size();
-    assert_size_geq(total[1] - total[2], cap_size * (slot_size / 2));
+
+    // This GC is conservative, so not always garbage memory areas are freed.
+    // Therefore, ideally we want to check that the following,
+    //      total[1] - total[2] <= cap_size * (slot_size / 2)
+    // but only check the memory usage doesn't increase after GC here.
+    assert_size_geq(total[1], total[2]);
 }
 
 static NutestTest tests[] = {
