@@ -15,3 +15,7 @@ target_sources(${TARGET}
 )
 
 target_link_libraries(${TARGET} unity)
+
+if (NOT NUTSCC_DISABLE_TEST_NUTEST)
+    add_subdirectory(test)
+endif()

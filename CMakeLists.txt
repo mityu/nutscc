@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 4.0)
 project(nutscc C)
 
 option(NUTSCC_DISABLE_TEST_ALL "Disable all of the test targets.")
+option(NUTSCC_DISABLE_TEST_NUTEST "Diable tests of nutest module.")
 option(NUTSCC_DISABLE_TEST_GC "Diable tests of GC module.")
 option(NUTSCC_DISABLE_TEST_CONTAINERS "Diable tests of containers module.")
 option(NUTSCC_GC_DONT_USE_DATA_SEGMENT_SYMBOL "Disable approach of using system-dependent symbol to get data segment in GC module.")
@@ -22,6 +23,7 @@ endif()
 add_library(test_framework INTERFACE)
 
 set(TEST_DISABLER_LIST
+    NUTSCC_DISABLE_TEST_NUTEST
     NUTSCC_DISABLE_TEST_GC
     NUTSCC_DISABLE_TEST_CONTAINERS
 )
@@ -45,9 +47,9 @@ foreach(VARNAME ${TEST_DISABLER_LIST})
 endforeach()
 
 if (ENABLE_TESTS)
+    enable_testing()
     add_subdirectory(nutest)
     target_link_libraries(test_framework INTERFACE nutest)
-    enable_testing()
 else()
     message(WARNING "All tests are disabled.")
 endif()

@@ -37,7 +37,9 @@ int nutest_suite_main(const NutestSuite *suite, void *user_data, int argc, char 
 #define assert_uint64_equal(expected, actual) TEST_ASSERT_EQUAL_UINT64(expected, actual)
 
 #define assert_size_geq(threshold, actual)                                               \
-    TEST_ASSERT_GREATER_OR_EQUAL_size_t(threshold, actual)
+    TEST_ASSERT_GREATER_OR_EQUAL_size_t(actual, threshold)
+
+#define assert_size_lt(threshold, actual) TEST_ASSERT_LESS_THAN_size_t(actual, threshold)
 
 #define assert_uint64_neq(threshold, actual)                                             \
     TEST_ASSERT_NOT_EQUAL_UINT64(threshold, actual)
