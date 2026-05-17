@@ -21,7 +21,6 @@ jobs:
         compiler:
           - gcc
           - clang
-          - tcc
 
         homebrew:
           - true
@@ -31,10 +30,7 @@ jobs:
           - os: macos-latest
             compiler: clang
 
-        # TCC doesn't support macOS now.
         exclude:
-          - os: macos-latest
-            compiler: tcc
           - os: macos-latest
             compiler: gcc
             homebrew: false

@@ -53,7 +53,6 @@ endef
 $(eval $(call GEN_BUILDMENUS,byauto,))
 $(eval $(call GEN_BUILDMENUS,bygcc,gcc))
 $(eval $(call GEN_BUILDMENUS,byclang,clang))
-$(eval $(call GEN_BUILDMENUS,bytcc,tcc))
 
 list: cmake-prepare-byauto
 	cmake -LH $(BUILDDIR)/byauto
