@@ -40,7 +40,7 @@ cmake-prepare-$1:
 $1: cmake-prepare-$1
 	cmake --build $(BUILDDIR)/$1
 test-$1: $1
-	ctest --verbose --output-on-failure --test-dir $(BUILDDIR)/$1
+	ctest --output-on-failure --test-dir $(BUILDDIR)/$1
 $1-%: cmake-prepare-$1
 	cmake --build $(BUILDDIR)/$1 --target $${@:$1-%=%}
 cmake-refresh-$1:
