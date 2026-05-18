@@ -7,3 +7,4 @@ endfunction()
 
 add_test_target(string test_string.c)
 add_test_target(vector test_vector.c)
+add_test_target(list test_list.c)

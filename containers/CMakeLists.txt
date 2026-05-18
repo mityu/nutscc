@@ -6,11 +6,13 @@ target_sources(containers
     FILES
     include/containers/vector.h
     include/containers/string.h
+    include/containers/list.h
 )
 target_sources(containers
     PRIVATE
     src/vector.c
     src/string.c
+    src/list.c
 )
 target_link_libraries(containers PUBLIC gc)
 
